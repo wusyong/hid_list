@@ -1,0 +1,10 @@
+[package]
+name = "hid_list"
+version = "0.1.0"
+authors = ["wusyo"]
+edition = "2018"
+default-run = "hid_list"
+
+[dependencies]
+winapi = { version = "0.3.8", features = ["hidclass", "debug", "hidsdi", "setupapi", "impl-default", "fileapi", "winnt", "winbase", "handleapi", "hidpi"] }
+libc = "0.2.71"
