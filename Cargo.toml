@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["wusyo"]
 edition = "2018"
 default-run = "hid_list"
+license = "MIT/Apache-2.0"
+description = "Raw windows call to USB HID showing current driver list"
 
 [dependencies]
 winapi = { version = "0.3.8", features = ["hidclass", "debug", "hidsdi", "setupapi", "impl-default", "fileapi", "winnt", "winbase", "handleapi", "hidpi"] }
