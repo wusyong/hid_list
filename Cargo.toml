@@ -8,5 +8,5 @@ license = "MIT/Apache-2.0"
 description = "Raw windows call to USB HID class showing current driver list"
 
 [dependencies]
-winapi = { version = "0.3.8", features = ["hidclass", "debug", "hidsdi", "setupapi", "impl-default", "fileapi", "winnt", "winbase", "handleapi", "hidpi"] }
+winapi = { version = "0.3.8", features = ["debug", "fileapi", "hidclass", "hidsdi", "handleapi", "hidpi", "impl-default", "setupapi", "winnt", "winbase"] }
 libc = "0.2.71"
