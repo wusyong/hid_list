@@ -28,8 +28,9 @@ use winapi::{
 
 use crate::types::{HidDeviceInfo, FALSE};
 
+// TODO: Error handling
 pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
-    // Get information for all the devices belonging to the HID class.
+    // Get information for all the devices belonging to the HID class
     let mut result = Vec::new();
     let mut index = 0;
     let device_info_set = unsafe {
@@ -41,7 +42,7 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
         )
     };
 
-    // Iterate over each device in the HID class, looking for the right one.
+    // Iterate over each device in the HID class
     loop {
         let mut device_interface_data = SP_DEVICE_INTERFACE_DATA::default();
         device_interface_data.cbSize = size_of::<SP_DEVICE_INTERFACE_DATA>() as u32;
@@ -57,9 +58,8 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
         // Return of FALSE means there are no more devices.
         bool_check!(res);
 
-        // Call with 0-sized detail size, and let the function
-        // tell us how long the detail struct needs to be. The
-        // size is put in &required_size.
+        // let the function tell us how long the detail struct needs to be. The
+        // size is put in required_size.
         let mut required_size: u32 = 0;
         unsafe {
             SetupDiGetDeviceInterfaceDetailA(
@@ -75,6 +75,8 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
         // Get the detailed data for this device. The detail data gives us
         // the device path for this device, which is then passed into
         // CreateFile() to get a handle to the device.
+        // This has to be malloc here as it is a DST.
+        // Box or other dynamic allocation method in std will fail.
         let mut device_interface_detail_data = unsafe {
             libc::malloc(required_size as usize) as *mut SP_DEVICE_INTERFACE_DETAIL_DATA_A
         };
@@ -154,7 +156,6 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
                 null_mut(),
             )
         };
-        dbg!(write_handle);
         if write_handle == INVALID_HANDLE_VALUE {
             break;
         }
@@ -168,7 +169,7 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
         // device to the enumeration list.
         let mut cur_dev = HidDeviceInfo::default();
 
-        // Get the Usage Page and Usage for this device.
+        // Get the Usage Page and Usage for this device
         let mut pp_data = MaybeUninit::uninit();
         let mut caps = MaybeUninit::uninit();
         let res = unsafe { HidD_GetPreparsedData(write_handle, pp_data.as_mut_ptr()) };
@@ -183,7 +184,7 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
             unsafe { HidD_FreePreparsedData(pp_data) };
         }
 
-        // Fill out the record
+        // Path
         let cstr = unsafe {
             CStr::from_ptr((*device_interface_detail_data).DevicePath.as_ptr())
                 .to_str()
@@ -213,7 +214,6 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
                 }
             });
             cur_dev.serial_number = String::from_utf16(&wstr[..i]).unwrap();
-            dbg!(&cur_dev.serial_number);
         }
 
         // Manufacturer String
@@ -233,7 +233,6 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
                 }
             });
             cur_dev.manufacturer_string = String::from_utf16(&wstr[..i]).unwrap();
-            dbg!(&cur_dev.manufacturer_string);
         }
 
         // Product String
@@ -253,7 +252,6 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
                 }
             });
             cur_dev.product_string = String::from_utf16(&wstr[..i]).unwrap();
-            dbg!(&cur_dev.product_string);
         }
 
         // Interface Number. It can sometimes be parsed out of the path
@@ -261,7 +259,12 @@ pub fn get_hid_device_info_list() -> Vec<HidDeviceInfo> {
         // http://msdn.microsoft.com/en-us/windows/hardware/gg487473 or
         // search for "Hardware IDs for HID Devices" at MSDN. If it's not
         // in the path, it's set to -1.
-        // TODO
+        cur_dev.interface_number = if let Some(i) = cur_dev.path.find("&mi_") {
+            i32::from_str_radix(&cur_dev.path[i + 4..i + 6], 16).unwrap()
+        } else {
+            -1
+        };
+
         result.push(cur_dev);
         index += 1;
     }
