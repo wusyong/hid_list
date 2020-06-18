@@ -5,5 +5,6 @@ This is the Rust implementation of some functions in hidapi which directly calls
 ## Usage
 
 ```
-cargo run
+cargo install hid_list
+hid_list
 ```
